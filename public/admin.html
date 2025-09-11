@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Dashboard — Student Registrations</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* small custom scrollbar for table */
+    .table-scroll::-webkit-scrollbar { height: 8px; }
+    .table-scroll::-webkit-scrollbar-thumb { background: rgba(100,116,139,.4); border-radius: 6px; }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-100 text-gray-800">
+  <div class="max-w-7xl mx-auto p-6">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between gap-4 mb-6">
+      <h1 class="text-2xl sm:text-3xl font-semibold">Admin Dashboard</h1>
+
+      <div class="flex items-center gap-3">
+        <button id="darkToggle" class="px-3 py-2 rounded-md border text-sm">Dark</button>
+        <a href="/index.html" class="px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">Open Registration</a>
+      </div>
+    </div>
+
+    <!-- Top controls -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <!-- Search + Sort -->
+      <div class="col-span-2 flex gap-2">
+        <input id="searchInput" type="search" placeholder="Search name / roll / course..." class="flex-1 p-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        <select id="sortSelect" class="w-48 p-3 rounded-lg border">
+          <option value="newest">Sort: Newest</option>
+          <option value="name_asc">Name ↑</option>
+          <option value="name_desc">Name ↓</option>
+          <option value="roll_asc">Roll ↑</option>
+          <option value="roll_desc">Roll ↓</option>
+          <option value="status">Status</option>
+        </select>
+      </div>
+
+      <!-- CSV + refresh -->
+      <div class="flex gap-2 justify-end">
+        <button id="exportCSV" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Export CSV</button>
+        <button id="refreshBtn" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Refresh</button>
+      </div>
+    </div>
+
+    <!-- Stats + Chart -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white p-4 rounded-lg shadow text-center">
+        <p class="text-sm text-gray-500">Total</p>
+        <p id="totalCount" class="text-2xl font-bold">0</p>
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow text-center">
+        <p class="text-sm text-gray-500">Approved</p>
+        <p id="approvedCount" class="text-2xl font-bold text-green-600">0</p>
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow text-center">
+        <p class="text-sm text-gray-500">Pending</p>
+        <p id="pendingCount" class="text-2xl font-bold text-yellow-600">0</p>
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow">
+        <canvas id="statusChart" height="120"></canvas>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="p-4 border-b flex items-center justify-between">
+        <p class="text-sm text-gray-600">Registrations</p>
+        <p id="listCount" class="text-sm text-gray-500">Showing 0</p>
+      </div>
+
+      <div class="table-scroll overflow-x-auto">
+        <table class="min-w-full divide-y">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Photo</th>
+              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Name</th>
+              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Roll</th>
+              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Course</th>
+              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Sem</th>
+              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Phone</th>
+              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Email</th>
+              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Status</th>
+              <th class="px-4 py-2 text-center text-sm font-medium text-gray-600">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentTable" class="bg-white divide-y"></tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="p-4 flex items-center justify-between">
+        <div>
+          <button id="prevPage" class="px-3 py-1 border rounded-md mr-2">Prev</button>
+          <button id="nextPage" class="px-3 py-1 border rounded-md">Next</button>
+        </div>
+        <div class="text-sm text-gray-600">
+          Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 hidden"></div>
+
+  </div>
+
+  <script>
+  (function () {
+    // ---------- CONFIG ----------
+    const API_BASE = "/api/students"; // relative path, works locally and on Render
+    const ROWS_PER_PAGE = 8;
+
+    // DOM refs
+    const studentTable = document.getElementById('studentTable');
+    const totalCountEl = document.getElementById('totalCount');
+    const approvedCountEl = document.getElementById('approvedCount');
+    const pendingCountEl = document.getElementById('pendingCount');
+    const statusChartCtx = document.getElementById('statusChart');
+    const listCountEl = document.getElementById('listCount');
+    const searchInput = document.getElementById('searchInput');
+    const sortSelect = document.getElementById('sortSelect');
+    const exportCSVBtn = document.getElementById('exportCSV');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const prevPageBtn = document.getElementById('prevPage');
+    const nextPageBtn = document.getElementById('nextPage');
+    const currentPageEl = document.getElementById('currentPage');
+    const totalPagesEl = document.getElementById('totalPages');
+    const toastEl = document.getElementById('toast');
+    const darkToggle = document.getElementById('darkToggle');
+
+    // state
+    let students = [];
+    let filtered = [];
+    let currentPage = 1;
+    let chart;
+
+    // ---------- UTIL ----------
+    function showToast(msg, type = 'success') {
+      toastEl.className = 'fixed bottom-6 right-6';
+      toastEl.innerHTML = `<div class="px-4 py-2 rounded-md shadow ${type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}">${msg}</div>`;
+      toastEl.classList.remove('hidden');
+      setTimeout(() => toastEl.classList.add('hidden'), 2500);
+    }
+
+    function debounce(fn, ms = 300) {
+      let t;
+      return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    }
+
+    function downloadCSV(rows, filename = 'students.csv') {
+      const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    // ---------- FETCH ----------
+    async function fetchStudents() {
+      setLoading(true);
+      try {
+        const res = await fetch(API_BASE);
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        students = await res.json();
+        // sort default: newest first (by createdAt if present, else by _id)
+        students.sort((a,b) => (b.createdAt || b._id) > (a.createdAt || a._id) ? 1 : -1);
+        applyFiltersAndRender();
+      } catch (err) {
+        showToast('Failed to load students: ' + err.message, 'error');
+      } finally { setLoading(false); }
+    }
+
+    // ---------- RENDER / FILTER / SORT ----------
+    function applyFiltersAndRender() {
+      const q = (searchInput.value || '').trim().toLowerCase();
+      filtered = students.filter(s => {
+        const text = `${s.name || ''} ${s.rollNumber || ''} ${s.course || ''}`.toLowerCase();
+        return text.includes(q);
+      });
+
+      // sort
+      const sort = sortSelect.value;
+      if (sort === 'name_asc') filtered.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+      else if (sort === 'name_desc') filtered.sort((a,b) => (b.name||'').localeCompare(a.name||''));
+      else if (sort === 'roll_asc') filtered.sort((a,b) => (a.rollNumber||'').localeCompare(b.rollNumber||''));
+      else if (sort === 'roll_desc') filtered.sort((a,b) => (b.rollNumber||'').localeCompare(a.rollNumber||''));
+      else if (sort === 'status') filtered.sort((a,b) => (a.status||'').localeCompare(b.status||''));
+      else filtered = filtered; // newest already set
+
+      currentPage = 1;
+      renderPage();
+      updateStats();
+    }
+
+    function renderPage() {
+      const total = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / ROWS_PER_PAGE));
+      if (currentPage > totalPages) currentPage = totalPages;
+      const start = (currentPage - 1) * ROWS_PER_PAGE;
+      const pageItems = filtered.slice(start, start + ROWS_PER_PAGE);
+
+      // render table rows
+      studentTable.innerHTML = '';
+      pageItems.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        const photoHtml = s.photo ? `<img src="${s.photo}" alt="photo" class="w-12 h-12 rounded-full object-cover">` : `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">N/A</div>`;
+        tr.innerHTML = `
+          <td class="px-4 py-3 whitespace-nowrap">${photoHtml}</td>
+          <td class="px-4 py-3">${escapeHtml(s.name||'—')}</td>
+          <td class="px-4 py-3">${escapeHtml(s.rollNumber||'—')}</td>
+          <td class="px-4 py-3">${escapeHtml(s.course||'—')}</td>
+          <td class="px-4 py-3">${escapeHtml(s.semester||'—')}</td>
+          <td class="px-4 py-3">${escapeHtml(s.phone||'—')}</td>
+          <td class="px-4 py-3">${escapeHtml(s.email||'—')}</td>
+          <td class="px-4 py-3">${renderStatusBadge(s.status||'Pending')}</td>
+          <td class="px-4 py-3 text-center">
+            <div class="inline-flex gap-2">
+              <button data-id="${s._id}" data-action="approve" class="px-2 py-1 bg-green-600 text-white rounded text-sm">Approve</button>
+              <button data-id="${s._id}" data-action="reject" class="px-2 py-1 bg-yellow-500 text-white rounded text-sm">Reject</button>
+              <button data-id="${s._id}" data-action="delete" class="px-2 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
+            </div>
+          </td>
+        `;
+        studentTable.appendChild(tr);
+      });
+
+      // attach action handlers
+      studentTable.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.onclick = handleAction;
+      });
+
+      // update counters & pager
+      listCountEl.textContent = `Showing ${pageItems.length} of ${filtered.length}`;
+      currentPageEl.textContent = currentPage;
+      totalPagesEl.textContent = totalPages;
+      prevPageBtn.disabled = currentPage === 1;
+      nextPageBtn.disabled = currentPage === totalPages;
+    }
+
+    function updateStats() {
+      const total = students.length;
+      const approved = students.filter(s => s.status === 'Approved').length;
+      const pending = students.filter(s => !s.status || s.status === 'Pending').length;
+      totalCountEl.textContent = total;
+      approvedCountEl.textContent = approved;
+      pendingCountEl.textContent = pending;
+      renderChart(approved, pending, total - approved - pending);
+    }
+
+    function renderStatusBadge(status) {
+      const st = (status || 'Pending');
+      const map = {
+        Approved: '<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Approved</span>',
+        Rejected: '<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-800">Rejected</span>',
+        Pending: '<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-800">Pending</span>'
+      };
+      return map[st] || `<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-800">${escapeHtml(st)}</span>`;
+    }
+
+    function escapeHtml(text) {
+      return String(text).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    }
+
+    // ---------- CHART ----------
+    function renderChart(approved, pending, rejected) {
+      const data = [approved, pending, rejected];
+      if (chart) chart.destroy();
+      chart = new Chart(statusChartCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Approved','Pending','Rejected'],
+          datasets: [{ data, backgroundColor: ['#16a34a','#f59e0b','#ef4444'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    // ---------- ACTIONS ----------
+    async function handleAction(e) {
+      const id = e.currentTarget.dataset.id;
+      const action = e.currentTarget.dataset.action;
+      if (!id) return;
+      if (action === 'delete') {
+        if (!confirm('Delete this student permanently?')) return;
+        try {
+          const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('Delete failed ' + res.status);
+          showToast('Deleted successfully');
+          await fetchStudents();
+        } catch (err) { showToast('Delete failed: ' + err.message, 'error'); }
+        return;
+      }
+
+      // approve / reject
+      const status = action === 'approve' ? 'Approved' : 'Rejected';
+      try {
+        const res = await fetch(`${API_BASE}/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        if (!res.ok) throw new Error('Update failed ' + res.status);
+        showToast(`Marked ${status}`);
+        await fetchStudents();
+      } catch (err) { showToast('Update failed: ' + err.message, 'error'); }
+    }
+
+    // ---------- CSV ----------
+    exportCSVBtn.addEventListener('click', () => {
+      if (!students.length) return showToast('No data to export', 'error');
+      const rows = [['Name','Roll','Course','Semester','Phone','Email','Status']];
+      students.forEach(s => rows.push([s.name||'', s.rollNumber||'', s.course||'', s.semester||'', s.phone||'', s.email||'', s.status||'Pending']));
+      downloadCSV(rows, 'students.csv');
+    });
+
+    // ---------- PAGINATION ----------
+    prevPageBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderPage(); }});
+    nextPageBtn.addEventListener('click', () => { const tot = Math.ceil(filtered.length / ROWS_PER_PAGE); if (currentPage < tot) { currentPage++; renderPage(); }});
+
+    // ---------- UI helpers ----------
+    function setLoading(state) {
+      if (state) {
+        refreshBtn.textContent = 'Loading...'; refreshBtn.disabled = true;
+      } else {
+        refreshBtn.textContent = 'Refresh'; refreshBtn.disabled = false;
+      }
+    }
+
+    // ---------- Search / sort handlers ----------
+    searchInput.addEventListener('input', debounce(() => applyFiltersAndRender(), 250));
+    sortSelect.addEventListener('change', () => applyFiltersAndRender());
+    refreshBtn.addEventListener('click', () => fetchStudents());
+
+    // ---------- Dark mode toggle ----------
+    darkToggle.addEventListener('click', () => {
+      const dark = document.documentElement.classList.toggle('dark');
+      if (dark) {
+        document.documentElement.style.backgroundColor = '#0f172a';
+        document.documentElement.style.color = '#f8fafc';
+        darkToggle.textContent = 'Light';
+      } else {
+        document.documentElement.style.backgroundColor = '';
+        document.documentElement.style.color = '';
+        darkToggle.textContent = 'Dark';
+      }
+    });
+
+    // ---------- Initial load ----------
+    fetchStudents();
+
+    // ---------- small helper to avoid XSS in attributes etc -----------
+    // already implemented escapeHtml above
+
+  })();
+  </script>
+</body>
+</html>

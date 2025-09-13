@@ -88,6 +88,8 @@
               <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Sem</th>
               <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Phone</th>
               <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Email</th>
+              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Payment</th>
+              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Screenshot</th>
               <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Status</th>
               <th class="px-4 py-2 text-center text-sm font-medium text-gray-600">Actions</th>
             </tr>
@@ -115,11 +117,9 @@
 
   <script>
   (function () {
-    // ---------- CONFIG ----------
-    const API_BASE = "/api/students"; // relative path, works locally and on Render
+    const API_BASE = "/api/students";
     const ROWS_PER_PAGE = 8;
 
-    // DOM refs
     const studentTable = document.getElementById('studentTable');
     const totalCountEl = document.getElementById('totalCount');
     const approvedCountEl = document.getElementById('approvedCount');
@@ -137,23 +137,16 @@
     const toastEl = document.getElementById('toast');
     const darkToggle = document.getElementById('darkToggle');
 
-    // state
     let students = [];
     let filtered = [];
     let currentPage = 1;
     let chart;
 
-    // ---------- UTIL ----------
     function showToast(msg, type = 'success') {
       toastEl.className = 'fixed bottom-6 right-6';
       toastEl.innerHTML = `<div class="px-4 py-2 rounded-md shadow ${type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}">${msg}</div>`;
       toastEl.classList.remove('hidden');
       setTimeout(() => toastEl.classList.add('hidden'), 2500);
-    }
-
-    function debounce(fn, ms = 300) {
-      let t;
-      return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
     }
 
     function downloadCSV(rows, filename = 'students.csv') {
@@ -165,37 +158,24 @@
       URL.revokeObjectURL(url);
     }
 
-    // ---------- FETCH ----------
     async function fetchStudents() {
       setLoading(true);
       try {
         const res = await fetch(API_BASE);
-        if (!res.ok) throw new Error(`Status ${res.status}`);
         students = await res.json();
-        // sort default: newest first (by createdAt if present, else by _id)
-        students.sort((a,b) => (b.createdAt || b._id) > (a.createdAt || a._id) ? 1 : -1);
+        students.sort((a,b) => (b.createdAt||b._id) > (a.createdAt||a._id) ? 1 : -1);
         applyFiltersAndRender();
       } catch (err) {
         showToast('Failed to load students: ' + err.message, 'error');
       } finally { setLoading(false); }
     }
 
-    // ---------- RENDER / FILTER / SORT ----------
     function applyFiltersAndRender() {
       const q = (searchInput.value || '').trim().toLowerCase();
       filtered = students.filter(s => {
-        const text = `${s.name || ''} ${s.rollNumber || ''} ${s.course || ''}`.toLowerCase();
+        const text = `${s.name||''} ${s.rollNumber||''} ${s.course||''}`.toLowerCase();
         return text.includes(q);
       });
-
-      // sort
-      const sort = sortSelect.value;
-      if (sort === 'name_asc') filtered.sort((a,b) => (a.name||'').localeCompare(b.name||''));
-      else if (sort === 'name_desc') filtered.sort((a,b) => (b.name||'').localeCompare(a.name||''));
-      else if (sort === 'roll_asc') filtered.sort((a,b) => (a.rollNumber||'').localeCompare(b.rollNumber||''));
-      else if (sort === 'roll_desc') filtered.sort((a,b) => (b.rollNumber||'').localeCompare(a.rollNumber||''));
-      else if (sort === 'status') filtered.sort((a,b) => (a.status||'').localeCompare(b.status||''));
-      else filtered = filtered; // newest already set
 
       currentPage = 1;
       renderPage();
@@ -209,25 +189,32 @@
       const start = (currentPage - 1) * ROWS_PER_PAGE;
       const pageItems = filtered.slice(start, start + ROWS_PER_PAGE);
 
-      // render table rows
       studentTable.innerHTML = '';
       pageItems.forEach(s => {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
         const photoHtml = s.photo ? `<img src="${s.photo}" alt="photo" class="w-12 h-12 rounded-full object-cover">` : `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">N/A</div>`;
+        const paymentBadge = s.paymentStatus === "Paid" 
+          ? `<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs">Paid</span>`
+          : `<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs">Pending</span>`;
         tr.innerHTML = `
-          <td class="px-4 py-3 whitespace-nowrap">${photoHtml}</td>
+          <td class="px-4 py-3">${photoHtml}</td>
           <td class="px-4 py-3">${escapeHtml(s.name||'—')}</td>
           <td class="px-4 py-3">${escapeHtml(s.rollNumber||'—')}</td>
           <td class="px-4 py-3">${escapeHtml(s.course||'—')}</td>
           <td class="px-4 py-3">${escapeHtml(s.semester||'—')}</td>
           <td class="px-4 py-3">${escapeHtml(s.phone||'—')}</td>
           <td class="px-4 py-3">${escapeHtml(s.email||'—')}</td>
+          <td class="px-4 py-3">${paymentBadge}</td>
+          <td class="px-4 py-3">
+            ${s.paymentScreenshot ? `<a href="${s.paymentScreenshot}" target="_blank" class="text-blue-600 underline">View</a>` : "N/A"}
+          </td>
           <td class="px-4 py-3">${renderStatusBadge(s.status||'Pending')}</td>
           <td class="px-4 py-3 text-center">
             <div class="inline-flex gap-2">
               <button data-id="${s._id}" data-action="approve" class="px-2 py-1 bg-green-600 text-white rounded text-sm">Approve</button>
               <button data-id="${s._id}" data-action="reject" class="px-2 py-1 bg-yellow-500 text-white rounded text-sm">Reject</button>
+              <button data-id="${s._id}" data-action="markPaid" class="px-2 py-1 bg-blue-600 text-white rounded text-sm">Mark Paid</button>
               <button data-id="${s._id}" data-action="delete" class="px-2 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
             </div>
           </td>
@@ -235,12 +222,10 @@
         studentTable.appendChild(tr);
       });
 
-      // attach action handlers
       studentTable.querySelectorAll('button[data-action]').forEach(btn => {
         btn.onclick = handleAction;
       });
 
-      // update counters & pager
       listCountEl.textContent = `Showing ${pageItems.length} of ${filtered.length}`;
       currentPageEl.textContent = currentPage;
       totalPagesEl.textContent = totalPages;
@@ -259,109 +244,86 @@
     }
 
     function renderStatusBadge(status) {
-      const st = (status || 'Pending');
       const map = {
         Approved: '<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Approved</span>',
         Rejected: '<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-800">Rejected</span>',
         Pending: '<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-800">Pending</span>'
       };
-      return map[st] || `<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-800">${escapeHtml(st)}</span>`;
+      return map[status] || `<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-800">${escapeHtml(status)}</span>`;
     }
 
     function escapeHtml(text) {
       return String(text).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
     }
 
-    // ---------- CHART ----------
     function renderChart(approved, pending, rejected) {
       const data = [approved, pending, rejected];
       if (chart) chart.destroy();
       chart = new Chart(statusChartCtx, {
         type: 'doughnut',
-        data: {
-          labels: ['Approved','Pending','Rejected'],
-          datasets: [{ data, backgroundColor: ['#16a34a','#f59e0b','#ef4444'] }]
-        },
+        data: { labels: ['Approved','Pending','Rejected'], datasets: [{ data, backgroundColor: ['#16a34a','#f59e0b','#ef4444'] }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
       });
     }
 
-    // ---------- ACTIONS ----------
     async function handleAction(e) {
       const id = e.currentTarget.dataset.id;
       const action = e.currentTarget.dataset.action;
       if (!id) return;
+
       if (action === 'delete') {
         if (!confirm('Delete this student permanently?')) return;
-        try {
-          const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
-          if (!res.ok) throw new Error('Delete failed ' + res.status);
-          showToast('Deleted successfully');
-          await fetchStudents();
-        } catch (err) { showToast('Delete failed: ' + err.message, 'error'); }
-        return;
+        await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+        showToast('Deleted successfully');
+        return fetchStudents();
       }
 
-      // approve / reject
-      const status = action === 'approve' ? 'Approved' : 'Rejected';
-      try {
-        const res = await fetch(`${API_BASE}/${id}`, {
+      if (action === 'markPaid') {
+        await fetch(`${API_BASE}/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status })
+          body: JSON.stringify({ paymentStatus: "Paid" })
         });
-        if (!res.ok) throw new Error('Update failed ' + res.status);
-        showToast(`Marked ${status}`);
-        await fetchStudents();
-      } catch (err) { showToast('Update failed: ' + err.message, 'error'); }
+        showToast('Payment marked as Paid');
+        return fetchStudents();
+      }
+
+      const status = action === 'approve' ? 'Approved' : 'Rejected';
+      await fetch(`${API_BASE}/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      showToast(`Marked ${status}`);
+      fetchStudents();
     }
 
-    // ---------- CSV ----------
     exportCSVBtn.addEventListener('click', () => {
       if (!students.length) return showToast('No data to export', 'error');
-      const rows = [['Name','Roll','Course','Semester','Phone','Email','Status']];
-      students.forEach(s => rows.push([s.name||'', s.rollNumber||'', s.course||'', s.semester||'', s.phone||'', s.email||'', s.status||'Pending']));
+      const rows = [['Name','Roll','Course','Semester','Phone','Email','Status','Payment']];
+      students.forEach(s => rows.push([s.name||'', s.rollNumber||'', s.course||'', s.semester||'', s.phone||'', s.email||'', s.status||'Pending', s.paymentStatus||'Pending']));
       downloadCSV(rows, 'students.csv');
     });
 
-    // ---------- PAGINATION ----------
     prevPageBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderPage(); }});
     nextPageBtn.addEventListener('click', () => { const tot = Math.ceil(filtered.length / ROWS_PER_PAGE); if (currentPage < tot) { currentPage++; renderPage(); }});
 
-    // ---------- UI helpers ----------
     function setLoading(state) {
-      if (state) {
-        refreshBtn.textContent = 'Loading...'; refreshBtn.disabled = true;
-      } else {
-        refreshBtn.textContent = 'Refresh'; refreshBtn.disabled = false;
-      }
+      refreshBtn.textContent = state ? 'Loading...' : 'Refresh';
+      refreshBtn.disabled = state;
     }
 
-    // ---------- Search / sort handlers ----------
-    searchInput.addEventListener('input', debounce(() => applyFiltersAndRender(), 250));
+    searchInput.addEventListener('input', () => applyFiltersAndRender());
     sortSelect.addEventListener('change', () => applyFiltersAndRender());
     refreshBtn.addEventListener('click', () => fetchStudents());
 
-    // ---------- Dark mode toggle ----------
     darkToggle.addEventListener('click', () => {
       const dark = document.documentElement.classList.toggle('dark');
-      if (dark) {
-        document.documentElement.style.backgroundColor = '#0f172a';
-        document.documentElement.style.color = '#f8fafc';
-        darkToggle.textContent = 'Light';
-      } else {
-        document.documentElement.style.backgroundColor = '';
-        document.documentElement.style.color = '';
-        darkToggle.textContent = 'Dark';
-      }
+      if (dark) { document.documentElement.style.backgroundColor = '#0f172a'; document.documentElement.style.color = '#f8fafc'; darkToggle.textContent = 'Light'; }
+      else { document.documentElement.style.backgroundColor = ''; document.documentElement.style.color = ''; darkToggle.textContent = 'Dark'; }
     });
 
-    // ---------- Initial load ----------
     fetchStudents();
-
-    // ---------- small helper to avoid XSS in attributes etc -----------
-    // already implemented escapeHtml above
-
   })();
   </script>
 </body>

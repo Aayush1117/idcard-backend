@@ -271,31 +271,45 @@
       const action = e.currentTarget.dataset.action;
       if (!id) return;
 
-      if (action === 'delete') {
-        if (!confirm('Delete this student permanently?')) return;
-        await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
-        showToast('Deleted successfully');
-        return fetchStudents();
-      }
+      try {
+        let body = {};
+        if (action === "delete") {
+          if (!confirm("Delete this student permanently?")) return;
+          const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
+          if (!res.ok) throw new Error("Delete failed");
+          showToast("Deleted successfully");
+          return fetchStudents();
+        }
 
-      if (action === 'markPaid') {
-        await fetch(`${API_BASE}/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentStatus: "Paid" })
+        if (action === "markPaid") {
+          body = { paymentStatus: "Paid" };
+        } else if (action === "approve") {
+          body = { status: "Approved" };
+        } else if (action === "reject") {
+          body = { status: "Rejected" };
+        }
+
+        const res = await fetch(`${API_BASE}/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
         });
-        showToast('Payment marked as Paid');
-        return fetchStudents();
-      }
 
-      const status = action === 'approve' ? 'Approved' : 'Rejected';
-      await fetch(`${API_BASE}/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      showToast(`Marked ${status}`);
-      fetchStudents();
+        if (!res.ok) {
+          const error = await res.text();
+          throw new Error(error || `Update failed: ${res.status}`);
+        }
+
+        showToast(
+          action === "markPaid"
+            ? "Payment marked as Paid"
+            : `Marked ${body.status}`
+        );
+
+        await fetchStudents(); // refresh only after successful update
+      } catch (err) {
+        showToast(err.message, "error");
+      }
     }
 
     exportCSVBtn.addEventListener('click', () => {

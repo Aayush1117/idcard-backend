@@ -60,20 +60,26 @@ const getStudentById = async (req, res) => {
   }
 };
 
-// Update student (status, paymentStatus, etc.)
+// Update student status or payment
 const updateStatus = async (req, res) => {
   try {
+    const updateFields = {};
+    if (req.body.status) updateFields.status = req.body.status;
+    if (req.body.paymentStatus) updateFields.paymentStatus = req.body.paymentStatus;
+
     const student = await Student.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateFields,
       { new: true }
     );
+
     if (!student) return res.status(404).json({ message: "Student not found" });
     res.json(student);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // Delete student
 const deleteStudent = async (req, res) => {

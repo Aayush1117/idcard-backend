@@ -11,8 +11,14 @@ const studentSchema = new mongoose.Schema({
   phone: String,
   email: String,
   bloodGroup: String,
-  photo: String, // File path of uploaded photo
-  paymentStatus: { type: String, default: "Pending" }
+
+  // Photo
+  photo: String, // Uploaded passport-size photo
+
+  // Payment details
+  paymentScreenshot: String, // Uploaded payment proof
+  utr: String, // Transaction/UTR ID
+  paymentStatus: { type: String, default: "Pending" } // Pending/Approved/Rejected
 }, { timestamps: true });
 
 module.exports = mongoose.model("Student", studentSchema);

@@ -3,8 +3,16 @@ const Student = require("../models/Student");
 // Create new student
 const createStudent = async (req, res) => {
   try {
-    const photoUrl = req.file
-      ? `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
+    // Multer -> multiple files (photo + paymentScreenshot)
+    const photoFile = req.files?.photo ? req.files.photo[0] : null;
+    const paymentFile = req.files?.paymentScreenshot ? req.files.paymentScreenshot[0] : null;
+
+    const photoUrl = photoFile
+      ? `${req.protocol}://${req.get("host")}/uploads/${photoFile.filename}`
+      : null;
+
+    const paymentScreenshotUrl = paymentFile
+      ? `${req.protocol}://${req.get("host")}/uploads/${paymentFile.filename}`
       : null;
 
     const student = await Student.create({
@@ -19,11 +27,14 @@ const createStudent = async (req, res) => {
       email: req.body.email,
       bloodGroup: req.body.bloodGroup,
       photo: photoUrl,
-      status: "Pending",
+      paymentScreenshot: paymentScreenshotUrl,
+      utr: req.body.utr,
+      paymentStatus: "Pending"
     });
 
     res.status(201).json(student);
   } catch (error) {
+    console.error("Error creating student:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -49,12 +60,12 @@ const getStudentById = async (req, res) => {
   }
 };
 
-// Update student status (Approve/Reject)
+// Update student (status, paymentStatus, etc.)
 const updateStatus = async (req, res) => {
   try {
     const student = await Student.findByIdAndUpdate(
       req.params.id,
-      { status: req.body.status },
+      req.body,
       { new: true }
     );
     if (!student) return res.status(404).json({ message: "Student not found" });

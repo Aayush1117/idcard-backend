@@ -14,15 +14,20 @@ const router = express.Router();
 // Multer setup
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + path.extname(file.originalname)),
 });
 const upload = multer({ storage });
 
-// Routes
-router.post("/", upload.single("photo"), createStudent);
+// Multiple files: "photo" + "paymentScreenshot"
+router.post("/", upload.fields([
+  { name: "photo", maxCount: 1 },
+  { name: "paymentScreenshot", maxCount: 1 }
+]), createStudent);
+
 router.get("/", getStudents);
 router.get("/:id", getStudentById);
-router.patch("/:id", updateStatus);      // Approve/Reject
-router.delete("/:id", deleteStudent);    // Delete
+router.patch("/:id", updateStatus);   // Approve/Reject/Payment
+router.delete("/:id", deleteStudent); // Delete
 
 module.exports = router;

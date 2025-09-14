@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
+const fs = require("fs");
 const connectDB = require("./config/db");
 
 dotenv.config();
@@ -11,8 +12,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ✅ Ensure uploads folder exists
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
 // ✅ Serve uploads folder
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(uploadDir));  
 
 // ✅ Serve public folder
 app.use(express.static(path.join(__dirname, "public")));
@@ -23,6 +30,11 @@ app.use("/api/students", studentRoutes);
 
 // ✅ Default route -> index.html
 app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// ✅ (Optional) Fallback for unknown routes (SPA support)
+app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 

@@ -1,344 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin Dashboard — Student Registrations</title>
-
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    /* small custom scrollbar for table */
-    .table-scroll::-webkit-scrollbar { height: 8px; }
-    .table-scroll::-webkit-scrollbar-thumb { background: rgba(100,116,139,.4); border-radius: 6px; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Admin Dashboard — Student Registrations</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.table-scroll::-webkit-scrollbar { height: 8px; }
+.table-scroll::-webkit-scrollbar-thumb { background: rgba(100,116,139,.4); border-radius: 6px; }
+</style>
 </head>
 <body class="min-h-screen bg-gray-100 text-gray-800">
-  <div class="max-w-7xl mx-auto p-6">
+<div class="max-w-7xl mx-auto p-6">
 
-    <!-- Header -->
-    <div class="flex items-center justify-between gap-4 mb-6">
-      <h1 class="text-2xl sm:text-3xl font-semibold">Admin Dashboard</h1>
-
-      <div class="flex items-center gap-3">
-        <button id="darkToggle" class="px-3 py-2 rounded-md border text-sm">Dark</button>
-        <a href="/index.html" class="px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">Open Registration</a>
-      </div>
+  <!-- Header -->
+  <div class="flex items-center justify-between gap-4 mb-6">
+    <h1 class="text-2xl sm:text-3xl font-semibold">Admin Dashboard</h1>
+    <div class="flex items-center gap-3">
+      <button id="darkToggle" class="px-3 py-2 rounded-md border text-sm">Dark</button>
+      <a href="/index.html" class="px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">Open Registration</a>
     </div>
-
-    <!-- Top controls -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-      <!-- Search + Sort -->
-      <div class="col-span-2 flex gap-2">
-        <input id="searchInput" type="search" placeholder="Search name / roll / course..." class="flex-1 p-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-400" />
-        <select id="sortSelect" class="w-48 p-3 rounded-lg border">
-          <option value="newest">Sort: Newest</option>
-          <option value="name_asc">Name ↑</option>
-          <option value="name_desc">Name ↓</option>
-          <option value="roll_asc">Roll ↑</option>
-          <option value="roll_desc">Roll ↓</option>
-          <option value="status">Status</option>
-        </select>
-      </div>
-
-      <!-- CSV + refresh -->
-      <div class="flex gap-2 justify-end">
-        <button id="exportCSV" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Export CSV</button>
-        <button id="refreshBtn" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Refresh</button>
-      </div>
-    </div>
-
-    <!-- Stats + Chart -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white p-4 rounded-lg shadow text-center">
-        <p class="text-sm text-gray-500">Total</p>
-        <p id="totalCount" class="text-2xl font-bold">0</p>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow text-center">
-        <p class="text-sm text-gray-500">Approved</p>
-        <p id="approvedCount" class="text-2xl font-bold text-green-600">0</p>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow text-center">
-        <p class="text-sm text-gray-500">Pending</p>
-        <p id="pendingCount" class="text-2xl font-bold text-yellow-600">0</p>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow">
-        <canvas id="statusChart" height="120"></canvas>
-      </div>
-    </div>
-
-    <!-- Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="p-4 border-b flex items-center justify-between">
-        <p class="text-sm text-gray-600">Registrations</p>
-        <p id="listCount" class="text-sm text-gray-500">Showing 0</p>
-      </div>
-
-      <div class="table-scroll overflow-x-auto">
-        <table class="min-w-full divide-y">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Photo</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Name</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Roll</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Course</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Sem</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Phone</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Email</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Payment</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Screenshot</th>
-              <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Status</th>
-              <th class="px-4 py-2 text-center text-sm font-medium text-gray-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="studentTable" class="bg-white divide-y"></tbody>
-        </table>
-      </div>
-
-      <!-- Pagination -->
-      <div class="p-4 flex items-center justify-between">
-        <div>
-          <button id="prevPage" class="px-3 py-1 border rounded-md mr-2">Prev</button>
-          <button id="nextPage" class="px-3 py-1 border rounded-md">Next</button>
-        </div>
-        <div class="text-sm text-gray-600">
-          Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Toast -->
-    <div id="toast" class="fixed bottom-6 right-6 hidden"></div>
-
   </div>
 
-  <script>
-  (function () {
-    const API_BASE = "https://idcard-backend.onrender.com/api/students";
-    const ROWS_PER_PAGE = 8;
+  <!-- Top controls -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+    <div class="col-span-2 flex gap-2">
+      <input id="searchInput" type="search" placeholder="Search name / roll / course..." class="flex-1 p-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      <select id="sortSelect" class="w-48 p-3 rounded-lg border">
+        <option value="newest">Sort: Newest</option>
+        <option value="name_asc">Name ↑</option>
+        <option value="name_desc">Name ↓</option>
+        <option value="roll_asc">Roll ↑</option>
+        <option value="roll_desc">Roll ↓</option>
+        <option value="status">Status</option>
+      </select>
+    </div>
+    <div class="flex gap-2 justify-end">
+      <button id="exportCSV" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Export CSV</button>
+      <button id="refreshBtn" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Refresh</button>
+    </div>
+  </div>
 
-    const studentTable = document.getElementById('studentTable');
-    const totalCountEl = document.getElementById('totalCount');
-    const approvedCountEl = document.getElementById('approvedCount');
-    const pendingCountEl = document.getElementById('pendingCount');
-    const statusChartCtx = document.getElementById('statusChart');
-    const listCountEl = document.getElementById('listCount');
-    const searchInput = document.getElementById('searchInput');
-    const sortSelect = document.getElementById('sortSelect');
-    const exportCSVBtn = document.getElementById('exportCSV');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const prevPageBtn = document.getElementById('prevPage');
-    const nextPageBtn = document.getElementById('nextPage');
-    const currentPageEl = document.getElementById('currentPage');
-    const totalPagesEl = document.getElementById('totalPages');
-    const toastEl = document.getElementById('toast');
-    const darkToggle = document.getElementById('darkToggle');
+  <!-- Stats + Chart -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white p-4 rounded-lg shadow text-center">
+      <p class="text-sm text-gray-500">Total</p>
+      <p id="totalCount" class="text-2xl font-bold">0</p>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow text-center">
+      <p class="text-sm text-gray-500">Approved</p>
+      <p id="approvedCount" class="text-2xl font-bold text-green-600">0</p>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow text-center">
+      <p class="text-sm text-gray-500">Pending</p>
+      <p id="pendingCount" class="text-2xl font-bold text-yellow-600">0</p>
+    </div>
+    <div class="bg-white p-4 rounded-lg shadow">
+      <canvas id="statusChart" height="120"></canvas>
+    </div>
+  </div>
 
-    let students = [];
-    let filtered = [];
-    let currentPage = 1;
-    let chart;
+  <!-- Table -->
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="p-4 border-b flex items-center justify-between">
+      <p class="text-sm text-gray-600">Registrations</p>
+      <p id="listCount" class="text-sm text-gray-500">Showing 0</p>
+    </div>
 
-    function showToast(msg, type = 'success') {
-      toastEl.className = 'fixed bottom-6 right-6';
-      toastEl.innerHTML = `<div class="px-4 py-2 rounded-md shadow ${type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}">${msg}</div>`;
-      toastEl.classList.remove('hidden');
-      setTimeout(() => toastEl.classList.add('hidden'), 2500);
-    }
+    <div class="table-scroll overflow-x-auto">
+      <table class="min-w-full divide-y">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Photo</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Name</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">fName</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Roll</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Course</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Sem</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">DOB</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Gender</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Blood Group</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Address</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Phone</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Email</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Payment</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Screenshot</th>
+            <th class="px-4 py-2 text-left text-sm font-medium text-gray-600">Status</th>
+            <th class="px-4 py-2 text-center text-sm font-medium text-gray-600">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="studentTable" class="bg-white divide-y"></tbody>
+      </table>
+    </div>
 
-    function downloadCSV(rows, filename = 'students.csv') {
-      const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    }
+    <div class="p-4 flex items-center justify-between">
+      <div>
+        <button id="prevPage" class="px-3 py-1 border rounded-md mr-2">Prev</button>
+        <button id="nextPage" class="px-3 py-1 border rounded-md">Next</button>
+      </div>
+      <div class="text-sm text-gray-600">
+        Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+      </div>
+    </div>
+  </div>
 
-    async function fetchStudents() {
-      setLoading(true);
-      try {
-        const res = await fetch(API_BASE);
-        students = await res.json();
-        students.sort((a,b) => (b.createdAt||b._id) > (a.createdAt||a._id) ? 1 : -1);
-        applyFiltersAndRender();
-      } catch (err) {
-        showToast('Failed to load students: ' + err.message, 'error');
-      } finally { setLoading(false); }
-    }
+  <div id="toast" class="fixed bottom-6 right-6 hidden"></div>
+</div>
 
-    function applyFiltersAndRender() {
-      const q = (searchInput.value || '').trim().toLowerCase();
-      filtered = students.filter(s => {
-        const text = `${s.name||''} ${s.rollNumber||''} ${s.course||''}`.toLowerCase();
-        return text.includes(q);
-      });
+<script>
+(function(){
+const API_BASE = "https://idcard-backend.onrender.com/api/students";
+const ROWS_PER_PAGE = 8;
+const studentTable = document.getElementById('studentTable');
+const totalCountEl = document.getElementById('totalCount');
+const approvedCountEl = document.getElementById('approvedCount');
+const pendingCountEl = document.getElementById('pendingCount');
+const statusChartCtx = document.getElementById('statusChart');
+const listCountEl = document.getElementById('listCount');
+const searchInput = document.getElementById('searchInput');
+const sortSelect = document.getElementById('sortSelect');
+const exportCSVBtn = document.getElementById('exportCSV');
+const refreshBtn = document.getElementById('refreshBtn');
+const prevPageBtn = document.getElementById('prevPage');
+const nextPageBtn = document.getElementById('nextPage');
+const currentPageEl = document.getElementById('currentPage');
+const totalPagesEl = document.getElementById('totalPages');
+const toastEl = document.getElementById('toast');
+const darkToggle = document.getElementById('darkToggle');
 
-      currentPage = 1;
-      renderPage();
-      updateStats();
-    }
+let students = [], filtered = [], currentPage=1, chart;
 
-    function renderPage() {
-      const total = filtered.length;
-      const totalPages = Math.max(1, Math.ceil(total / ROWS_PER_PAGE));
-      if (currentPage > totalPages) currentPage = totalPages;
-      const start = (currentPage - 1) * ROWS_PER_PAGE;
-      const pageItems = filtered.slice(start, start + ROWS_PER_PAGE);
+function showToast(msg,type='success'){
+  toastEl.className='fixed bottom-6 right-6';
+  toastEl.innerHTML=`<div class="px-4 py-2 rounded-md shadow ${type==='success'?'bg-green-600 text-white':'bg-red-600 text-white'}">${msg}</div>`;
+  toastEl.classList.remove('hidden');
+  setTimeout(()=>toastEl.classList.add('hidden'),2500);
+}
 
-      studentTable.innerHTML = '';
-      pageItems.forEach(s => {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-gray-50';
-        const photoHtml = s.photo ? `<img src="${s.photo}" alt="photo" class="w-12 h-12 rounded-full object-cover">` : `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">N/A</div>`;
-        const paymentBadge = s.paymentStatus === "Paid" 
-          ? `<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs">Paid</span>`
-          : `<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs">Pending</span>`;
-        tr.innerHTML = `
-          <td class="px-4 py-3">${photoHtml}</td>
-          <td class="px-4 py-3">${escapeHtml(s.name||'—')}</td>
-          <td class="px-4 py-3">${escapeHtml(s.rollNumber||'—')}</td>
-          <td class="px-4 py-3">${escapeHtml(s.course||'—')}</td>
-          <td class="px-4 py-3">${escapeHtml(s.semester||'—')}</td>
-          <td class="px-4 py-3">${escapeHtml(s.phone||'—')}</td>
-          <td class="px-4 py-3">${escapeHtml(s.email||'—')}</td>
-          <td class="px-4 py-3">${paymentBadge}</td>
-          <td class="px-4 py-3">
-            ${s.paymentScreenshot ? `<a href="${s.paymentScreenshot}" target="_blank" class="text-blue-600 underline">View</a>` : "N/A"}
-          </td>
-          <td class="px-4 py-3">${renderStatusBadge(s.status||'Pending')}</td>
-          <td class="px-4 py-3 text-center">
-            <div class="inline-flex gap-2">
-              <button data-id="${s._id}" data-action="approve" class="px-2 py-1 bg-green-600 text-white rounded text-sm">Approve</button>
-              <button data-id="${s._id}" data-action="reject" class="px-2 py-1 bg-yellow-500 text-white rounded text-sm">Reject</button>
-              <button data-id="${s._id}" data-action="markPaid" class="px-2 py-1 bg-blue-600 text-white rounded text-sm">Mark Paid</button>
-              <button data-id="${s._id}" data-action="delete" class="px-2 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
-            </div>
-          </td>
-        `;
-        studentTable.appendChild(tr);
-      });
+function downloadCSV(rows,filename='students.csv'){
+  const csv = rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
 
-      studentTable.querySelectorAll('button[data-action]').forEach(btn => {
-        btn.onclick = handleAction;
-      });
+async function fetchStudents(){
+  setLoading(true);
+  try{
+    const res = await fetch(API_BASE);
+    students = await res.json();
+    students.sort((a,b)=>(b.createdAt||b._id)>(a.createdAt||a._id)?1:-1);
+    applyFiltersAndRender();
+  }catch(err){showToast('Failed to load students: '+err.message,'error');}
+  finally{setLoading(false);}
+}
 
-      listCountEl.textContent = `Showing ${pageItems.length} of ${filtered.length}`;
-      currentPageEl.textContent = currentPage;
-      totalPagesEl.textContent = totalPages;
-      prevPageBtn.disabled = currentPage === 1;
-      nextPageBtn.disabled = currentPage === totalPages;
-    }
+function applyFiltersAndRender(){
+  const q = (searchInput.value||'').trim().toLowerCase();
+  filtered = students.filter(s=>{
+    const text=`${s.name||''} ${s.rollNumber||''} ${s.course||''}`.toLowerCase();
+    return text.includes(q);
+  });
+  currentPage=1; renderPage(); updateStats();
+}
 
-    function updateStats() {
-      const total = students.length;
-      const approved = students.filter(s => s.status === 'Approved').length;
-      const pending = students.filter(s => !s.status || s.status === 'Pending').length;
-      totalCountEl.textContent = total;
-      approvedCountEl.textContent = approved;
-      pendingCountEl.textContent = pending;
-      renderChart(approved, pending, total - approved - pending);
-    }
+function renderPage(){
+  const total = filtered.length;
+  const totalPages = Math.max(1,Math.ceil(total/ROWS_PER_PAGE));
+  if(currentPage>totalPages) currentPage=totalPages;
+  const start=(currentPage-1)*ROWS_PER_PAGE;
+  const pageItems = filtered.slice(start,start+ROWS_PER_PAGE);
 
-    function renderStatusBadge(status) {
-      const map = {
-        Approved: '<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Approved</span>',
-        Rejected: '<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-800">Rejected</span>',
-        Pending: '<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-800">Pending</span>'
-      };
-      return map[status] || `<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-800">${escapeHtml(status)}</span>`;
-    }
+  studentTable.innerHTML='';
+  pageItems.forEach(s=>{
+    const tr=document.createElement('tr'); tr.className='hover:bg-gray-50';
+    const photoHtml=s.photo? `<img src="${s.photo}" class="w-12 h-12 rounded-full object-cover">`:
+      `<div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">N/A</div>`;
+    const paymentBadge=s.paymentStatus==="Paid"?`<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs">Paid</span>`:
+      `<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs">Pending</span>`;
+    tr.innerHTML=`
+      <td class="px-4 py-3">${photoHtml}</td>
+      <td class="px-4 py-3">${escapeHtml(s.name||'—')}</td>
+      <td class="px-4 py-3">${escapeHtml(s.fatherName||'—')}</td>
+      <td class="px-4 py-3">${escapeHtml(s.rollNumber||'—')}</td>
+      <td class="px-4 py-3">${escapeHtml(s.course||'—')}</td>
+      <td class="px-4 py-3">${escapeHtml(s.semester||'—')}</td>
+      <td class="px-4 py-3">${escapeHtml(s.dob?new Date(s.dob).toLocaleDateString():'—')}</td>
+      <td class="px-4 py-3">${escapeHtml(s.gender||'—')}</td>
+      <td class="px-4 py-3">${escapeHtml(s.bloodGroup||'—')}</td>
+      <td class="px-4 py-3">${escapeHtml(s.address||'—')}</td>
+      <td class="px-4 py-3">${escapeHtml(s.phone||'—')}</td>
+      <td class="px-4 py-3">${escapeHtml(s.email||'—')}</td>
+      <td class="px-4 py-3">${paymentBadge}</td>
+      <td class="px-4 py-3">${s.paymentScreenshot?`<a href="${s.paymentScreenshot}" target="_blank" class="text-blue-600 underline">View</a>`:'N/A'}</td>
+      <td class="px-4 py-3">${renderStatusBadge(s.status||'Pending')}</td>
+      <td class="px-4 py-3 text-center">
+        <div class="inline-flex gap-2">
+          <button data-id="${s._id}" data-action="approve" class="px-2 py-1 bg-green-600 text-white rounded text-sm">Approve</button>
+          <button data-id="${s._id}" data-action="reject" class="px-2 py-1 bg-yellow-500 text-white rounded text-sm">Reject</button>
+          <button data-id="${s._id}" data-action="markPaid" class="px-2 py-1 bg-blue-600 text-white rounded text-sm">Mark Paid</button>
+          <button data-id="${s._id}" data-action="delete" class="px-2 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
+        </div>
+      </td>
+    `;
+    studentTable.appendChild(tr);
+  });
+  studentTable.querySelectorAll('button[data-action]').forEach(btn=>btn.onclick=handleAction);
+  listCountEl.textContent=`Showing ${pageItems.length} of ${filtered.length}`;
+  currentPageEl.textContent=currentPage;
+  totalPagesEl.textContent=totalPages;
+  prevPageBtn.disabled=currentPage===1;
+  nextPageBtn.disabled=currentPage===totalPages;
+}
 
-    function escapeHtml(text) {
-      return String(text).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
-    }
+function updateStats(){
+  const total = students.length;
+  const approved = students.filter(s=>s.status==='Approved').length;
+  const pending = students.filter(s=>!s.status||s.status==='Pending').length;
+  totalCountEl.textContent=total;
+  approvedCountEl.textContent=approved;
+  pendingCountEl.textContent=pending;
+  renderChart(approved,pending,total-approved-pending);
+}
 
-    function renderChart(approved, pending, rejected) {
-      const data = [approved, pending, rejected];
-      if (chart) chart.destroy();
-      chart = new Chart(statusChartCtx, {
-        type: 'doughnut',
-        data: { labels: ['Approved','Pending','Rejected'], datasets: [{ data, backgroundColor: ['#16a34a','#f59e0b','#ef4444'] }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-      });
-    }
+function renderChart(approved,pending,rejected){
+  if(chart) chart.destroy();
+  chart = new Chart(statusChartCtx,{
+    type:'doughnut',
+    data:{labels:['Approved','Pending','Rejected'],datasets:[{data:[approved,pending,rejected],backgroundColor:['#16a34a','#f59e0b','#ef4444']}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}
+  });
+}
 
-    async function handleAction(e) {
-      const id = e.currentTarget.dataset.id;
-      const action = e.currentTarget.dataset.action;
-      if (!id) return;
+function renderStatusBadge(status){
+  const map={
+    Approved:'<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Approved</span>',
+    Rejected:'<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-800">Rejected</span>',
+    Pending:'<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-800">Pending</span>'
+  };
+  return map[status]||`<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-800">${escapeHtml(status)}</span>`;
+}
 
-      try {
-        let body = {};
-        if (action === "delete") {
-          if (!confirm("Delete this student permanently?")) return;
-          const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
-          if (!res.ok) throw new Error("Delete failed");
-          showToast("Deleted successfully");
-          return fetchStudents();
-        }
+function escapeHtml(text){ return String(text).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
-        if (action === "markPaid") {
-          body = { paymentStatus: "Paid" };
-        } else if (action === "approve") {
-          body = { status: "Approved" };
-        } else if (action === "reject") {
-          body = { status: "Rejected" };
-        }
-
-        const res = await fetch(`${API_BASE}/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        });
-
-        if (!res.ok) {
-          const error = await res.text();
-          throw new Error(error || `Update failed: ${res.status}`);
-        }
-
-        showToast(
-          action === "markPaid"
-            ? "Payment marked as Paid"
-            : `Marked ${body.status}`
-        );
-
-        await fetchStudents(); // refresh only after successful update
-      } catch (err) {
-        showToast(err.message, "error");
-      }
-    }
-
-    exportCSVBtn.addEventListener('click', () => {
-      if (!students.length) return showToast('No data to export', 'error');
-      const rows = [['Name','Roll','Course','Semester','Phone','Email','Status','Payment']];
-      students.forEach(s => rows.push([s.name||'', s.rollNumber||'', s.course||'', s.semester||'', s.phone||'', s.email||'', s.status||'Pending', s.paymentStatus||'Pending']));
-      downloadCSV(rows, 'students.csv');
-    });
-
-    prevPageBtn.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderPage(); }});
-    nextPageBtn.addEventListener('click', () => { const tot = Math.ceil(filtered.length / ROWS_PER_PAGE); if (currentPage < tot) { currentPage++; renderPage(); }});
-
-    function setLoading(state) {
-      refreshBtn.textContent = state ? 'Loading...' : 'Refresh';
-      refreshBtn.disabled = state;
-    }
-
-    searchInput.addEventListener('input', () => applyFiltersAndRender());
-    sortSelect.addEventListener('change', () => applyFiltersAndRender());
-    refreshBtn.addEventListener('click', () => fetchStudents());
-
-    darkToggle.addEventListener('click', () => {
-      const dark = document.documentElement.classList.toggle('dark');
-      if (dark) { document.documentElement.style.backgroundColor = '#0f172a'; document.documentElement.style.color = '#f8fafc'; darkToggle.textContent = 'Light'; }
-      else { document.documentElement.style.backgroundColor = ''; document.documentElement.style.color = ''; darkToggle.textContent = 'Dark'; }
-    });
-
+async function handleAction(e){
+  const id = e.currentTarget.dataset.id;
+  const action = e.currentTarget.dataset.action;
+  if(!id) return;
+  try{
+    let body={};
+    if(action==="delete"){ if(!confirm("Delete this student permanently?")) return; await fetch(`${API_BASE}/${id}`,{method:"DELETE"}); showToast("Deleted successfully"); return fetchStudents();}
+    if(action==="markPaid"){ body={paymentStatus:"Paid"} }
+    else if(action==="approve"){ body={status:"Approved"} }
+    else if(action==="reject"){ body={status:"Rejected"} }
+    await fetch(`${API_BASE}/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    showToast(action==="markPaid"?"Payment marked as Paid":`Marked ${body.status}`);
     fetchStudents();
-  })();
-  </script>
+  }catch(err){showToast(err.message,'error');}
+}
+
+exportCSVBtn.addEventListener('click',()=>{
+  if(!students.length) return showToast('No data to export','error');
+  const rows=[['Photo','Name','fName','Roll','Course','Sem','DOB','Gender','BloodGroup','Address','Phone','Email','Payment','Screenshot','Status']];
+  students.forEach(s=>{
+    rows.push([
+      s.photo||'',
+      s.name||'',
+      s.fatherName||'',
+      s.rollNumber||'',
+      s.course||'',
+      s.semester||'',
+      s.dob?new Date(s.dob).toLocaleDateString():'',
+      s.gender||'',
+      s.bloodGroup||'',
+      s.address||'',
+      s.phone||'',
+      s.email||'',
+      s.paymentStatus||'Pending',
+      s.paymentScreenshot||'',
+      s.status||'Pending'
+    ]);
+  });
+  downloadCSV(rows,'students.csv');
+});
+
+prevPageBtn.addEventListener('click',()=>{if(currentPage>1){currentPage--;renderPage();}});
+nextPageBtn.addEventListener('click',()=>{const tot=Math.ceil(filtered.length/ROWS_PER_PAGE);if(currentPage<tot){currentPage++;renderPage();}});
+
+function setLoading(state){ refreshBtn.textContent=state?'Loading...':'Refresh'; refreshBtn.disabled=state; }
+searchInput.addEventListener('input',()=>applyFiltersAndRender());
+sortSelect.addEventListener('change',()=>applyFiltersAndRender());
+refreshBtn.addEventListener('click',()=>fetchStudents());
+
+darkToggle.addEventListener('click',()=>{
+  const dark = document.documentElement.classList.toggle('dark');
+  if(dark){ document.documentElement.style.backgroundColor='#0f172a'; document.documentElement.style.color='#f8fafc'; darkToggle.textContent='Light'; }
+  else{ document.documentElement.style.backgroundColor=''; document.documentElement.style.color=''; darkToggle.textContent='Dark'; }
+});
+
+fetchStudents();
+})();
+</script>
 </body>
 </html>

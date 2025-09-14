@@ -103,11 +103,11 @@
     const loading = document.getElementById("loading");
     const successMsg = document.getElementById("successMsg");
     const errorMsg = document.getElementById("errorMsg");
-    const photoInput = document.getElementById("photoInput");
+    const userimgInput = document.getElementById("userimgInput");
 
     // Photo preview
-    photoInput.addEventListener("change", () => {
-      const file = photoInput.files[0];
+    userimgInput.addEventListener("change", () => {
+      const file = userimgInput.files[0];
       if (file) {
         preview.src = URL.createObjectURL(file);
         preview.classList.remove("hidden");

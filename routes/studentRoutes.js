@@ -1,6 +1,6 @@
 const express = require("express");
-const multer = require("multer");
-const path = require("path");
+const router = express.Router();
+const upload = require("../middlewares/upload");
 const {
   createStudent,
   getStudents,
@@ -9,25 +9,17 @@ const {
   deleteStudent,
 } = require("../controllers/studentController");
 
-const router = express.Router();
-
-// Multer setup
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + path.extname(file.originalname)),
-});
-const upload = multer({ storage });
-
-// Multiple files: "photo" + "paymentScreenshot"
-router.post("/", upload.fields([
+// Upload multiple files (photo + paymentScreenshot)
+const multipleUpload = upload.fields([
   { name: "photo", maxCount: 1 },
-  { name: "paymentScreenshot", maxCount: 1 }
-]), createStudent);
+  { name: "paymentScreenshot", maxCount: 1 },
+]);
 
+// Routes
+router.post("/", multipleUpload, createStudent);
 router.get("/", getStudents);
 router.get("/:id", getStudentById);
-router.patch("/:id", updateStatus);   // Approve/Reject/Payment
-router.delete("/:id", deleteStudent); // Delete
+router.patch("/:id", updateStatus);
+router.delete("/:id", deleteStudent);
 
 module.exports = router;

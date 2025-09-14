@@ -1,24 +1,37 @@
 const mongoose = require("mongoose");
 
-const studentSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  fatherName: String,
-  rollNumber: { type: String, required: true },
-  course: String,
-  semester: String,
-  dob: Date,
-  gender: String,
-  phone: String,
-  email: String,
-  bloodGroup: String,
+const studentSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    fatherName: { type: String, required: true },
+    rollNumber: { type: String, required: true },
+    course: { type: String, required: true },
+    semester: { type: String, required: true },
+    dob: { type: Date, required: true },
+    gender: { type: String, required: true },
+    phone: { type: String, required: true },
+    email: { type: String, required: true },
+    bloodGroup: { type: String },
+    address: { type: String },
 
-  // Photo
-  photo: String, // Uploaded passport-size photo
+    // File uploads
+    photo: { type: String },
+    paymentScreenshot: { type: String },
 
-  // Payment details
-  paymentScreenshot: String, // Uploaded payment proof
-  utr: String, // Transaction/UTR ID
-  paymentStatus: { type: String, default: "Pending" } // Pending/Approved/Rejected
-}, { timestamps: true });
+    // Payment & Status
+    utr: { type: String }, 
+    paymentStatus: { 
+      type: String, 
+      enum: ["Pending", "Paid"], 
+      default: "Pending" 
+    },
+    status: { 
+      type: String, 
+      enum: ["Pending", "Approved", "Rejected"], 
+      default: "Pending" 
+    }
+  },
+  { timestamps: true }
+);
 
 module.exports = mongoose.model("Student", studentSchema);

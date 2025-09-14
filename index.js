@@ -26,7 +26,7 @@ app.use("/uploads", express.static(uploadDir));
 app.get(
   "/admin.html",
   basicAuth({
-    users: { admin: "14707654" }, // change later to env vars
+    users: { Aayush: "14707654" }, // change later to env vars
     challenge: true,
   }),
   (req, res) => {

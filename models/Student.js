@@ -15,7 +15,7 @@ const studentSchema = new mongoose.Schema(
     address: { type: String },
 
     // File uploads
-    photo: { type: String },
+    userimg: { type: String },
     paymentScreenshot: { type: String },
 
     // Payment & Status

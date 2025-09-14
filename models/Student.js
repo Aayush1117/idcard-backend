@@ -11,11 +11,11 @@ const studentSchema = new mongoose.Schema(
     gender: { type: String, required: true },
     phone: { type: String, required: true },
     email: { type: String, required: true },
-    bloodGroup: { type: String },
-    address: { type: String },
+    bloodGroup: { type: String, required: true},
+    address: { type: String,required: true},
 
     // File uploads
-    userimg: { type: String },
+    photo: { type: String },
     paymentScreenshot: { type: String },
 
     // Payment & Status

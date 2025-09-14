@@ -5,11 +5,11 @@ const Student = require("../models/Student");
 // Create new student
 const createStudent = async (req, res) => {
   try {
-    const userimgFile = req.files?.userimg ? req.files.userimg[0] : null;
+    const photoFile = req.files?.photo ? req.files.photo[0] : null;
     const paymentFile = req.files?.paymentScreenshot ? req.files.paymentScreenshot[0] : null;
 
-    const userimgUrl = userimgFile
-      ? `${req.protocol}://${req.get("host")}/uploads/${userimgFile.filename}`
+    const photoUrl = photoFile
+      ? `${req.protocol}://${req.get("host")}/uploads/${photoFile.filename}`
       : null;
 
     const paymentScreenshotUrl = paymentFile
@@ -52,7 +52,7 @@ const createStudent = async (req, res) => {
       bloodGroup,
       address,
       utr,
-      userimg: userimgUrl,
+      photo: photoUrl,
       paymentScreenshot: paymentScreenshotUrl,
 
       // Default values
@@ -125,9 +125,9 @@ const deleteStudent = async (req, res) => {
     if (!student) return res.status(404).json({ message: "Student not found" });
 
     // ✅ CHANGE 6: Delete uploaded files too
-    if (student.userimg) {
-      const userimgPath = path.join(__dirname, "..", "uploads", path.basename(student.userimg));
-      if (fs.existsSync(userimgPath)) fs.unlinkSync(userimgPath);
+    if (student.photo) {
+      const photoPath = path.join(__dirname, "..", "uploads", path.basename(student.photo));
+      if (fs.existsSync(photoPath)) fs.unlinkSync(photoPath);
     }
     if (student.paymentScreenshot) {
       const payPath = path.join(__dirname, "..", "uploads", path.basename(student.paymentScreenshot));

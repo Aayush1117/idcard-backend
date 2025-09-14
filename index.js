@@ -26,7 +26,7 @@ app.use("/uploads", express.static(uploadDir));
 app.get(
   "/admin.html",
   basicAuth({
-    users: { Aayush: "14707654" }, // change later to env vars
+    users: { [process.env.ADMIN_USER]: process.env.ADMIN_PASS },
     challenge: true,
   }),
   (req, res) => {
@@ -47,7 +47,11 @@ app.get("/", (req, res) => {
 });
 
 // ✅ (Optional) Fallback for unknown routes (SPA support)
-app.get("*", (req, res) => {
+// app.get("*", (req, res) => {
+//   res.sendFile(path.join(__dirname, "public", "index.html"));
+// });
+app.get("*", (req, res, next) => {
+  if (req.path === "/admin.html") return next(); // don’t override admin
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 

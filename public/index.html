@@ -48,19 +48,23 @@
         <option value="AB-">AB-</option>
       </select>
       <input type="text"name="address" placeholder="Address" required minlength="5" maxlength="200" class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-
-
-      <!-- <input type="text" name="address" placeholder="Address" required class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"> -->
       
       <!-- Photo Upload -->
-      <label class="block text-sm font-medium text-gray-700">Upload Passport size Image</label>
-      <input type="file" name="userimg" id="photoInput" accept="image/*" required class="w-full">
-      <img id="preview" class="w-full h-48 object-cover rounded-lg mt-2 hidden" alt="Photo Preview">
+      <!-- <label class="block text-sm font-medium text-gray-700">Upload Passport size Image</label>
+      <input type="file" name="userimg" id="photoInput" accept="image/*" required class="w-full"> -->
+      
       <!-- <div class="mt-4">
         <label class="block text-sm font-medium text-gray-700">Upload your Passport size Image</label>
         <input type="file" name="userimg" id="photoInput" accept="image/*" required  
               class="w-full mt-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"/>
       </div> -->
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">Upload Passport size Image</label>
+        <input type="file" id="photoInput" name="photo"  accept="image/*" required class="w-full
+        mt-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none"/>
+        <img id="preview" class="w-full h-48 object-cover rounded-lg mt-2 hidden" alt="Photo
+        Preview">
+      </div>
 
       <!-- Payment Section -->
       <div class="bg-gray-100 p-4 rounded-lg shadow mt-6">
@@ -103,11 +107,11 @@
     const loading = document.getElementById("loading");
     const successMsg = document.getElementById("successMsg");
     const errorMsg = document.getElementById("errorMsg");
-    const userimgInput = document.getElementById("userimgInput");
+    const photoInput = document.getElementById("photoInput");
 
     // Photo preview
-    userimgInput.addEventListener("change", () => {
-      const file = userimgInput.files[0];
+    photoInput.addEventListener("change", () => {
+      const file = photoInput.files[0];
       if (file) {
         preview.src = URL.createObjectURL(file);
         preview.classList.remove("hidden");
@@ -123,7 +127,7 @@
       loading.classList.remove("hidden");
 
       const formData = new FormData(form);
-
+ 
       try {
         const response = await fetch("https://idcard-backend.onrender.com/api/students", {
           method: "POST",

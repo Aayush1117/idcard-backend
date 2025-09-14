@@ -22,7 +22,7 @@ const upload = multer({ storage });
 
 // ✅ Accept multiple files with different field names
 const cpUpload = upload.fields([
-  { name: "userimg", maxCount: 1 },
+  { name: "photo", maxCount: 1 },
   { name: "paymentScreenshot", maxCount: 1 },
 ]);
 

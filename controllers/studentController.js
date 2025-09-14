@@ -5,7 +5,7 @@ const Student = require("../models/Student");
 // Create new student
 const createStudent = async (req, res) => {
   try {
-    const photoFile = req.files?.photo ? req.files.userimg[0] : null;
+    const photoFile = req.files?.userimg ? req.files.userimg[0] : null;
     const paymentFile = req.files?.paymentScreenshot ? req.files.paymentScreenshot[0] : null;
 
     const photoUrl = photoFile

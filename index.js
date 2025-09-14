@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
 const fs = require("fs");
+const basicAuth = require("express-basic-auth");  
 const connectDB = require("./config/db");
 
 dotenv.config();
@@ -19,7 +20,19 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // ✅ Serve uploads folder
-app.use("/uploads", express.static(uploadDir));  
+app.use("/uploads", express.static(uploadDir)); 
+
+// ✅ Protect admin.html
+app.get(
+  "/admin.html",
+  basicAuth({
+    users: { admin: "14707654" }, // change later to env vars
+    challenge: true,
+  }),
+  (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "admin.html"));
+  }
+);
 
 // ✅ Serve public folder
 app.use(express.static(path.join(__dirname, "public")));

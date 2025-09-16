@@ -1,5 +1,3 @@
-const fs = require("fs");
-const path = require("path");
 const Student = require("../models/Student");
 
 // Create new student
@@ -8,33 +6,43 @@ const createStudent = async (req, res) => {
     const photoFile = req.files?.photo ? req.files.photo[0] : null;
     const paymentFile = req.files?.paymentScreenshot ? req.files.paymentScreenshot[0] : null;
 
-    const photoUrl = photoFile
-      ? `${req.protocol}://${req.get("host")}/uploads/${photoFile.filename}`
-      : null;
+    // ✅ Cloudinary gives us .path = image URL
+    const photoUrl = photoFile ? photoFile.path : null;
+    const paymentScreenshotUrl = paymentFile ? paymentFile.path : null;
 
-    const paymentScreenshotUrl = paymentFile
-      ? `${req.protocol}://${req.get("host")}/uploads/${paymentFile.filename}`
-      : null;
+    const {
+      name,
+      fatherName,
+      rollNumber,
+      course,
+      semester,
+      dob,
+      gender,
+      phone,
+      email,
+      bloodGroup,
+      address,
+      utr,
+    } = req.body;
 
-    // ✅ CHANGE 1: Validation check for required fields
-    const { name, fatherName, rollNumber, course, semester, dob, gender, phone, email, bloodGroup, address, utr } = req.body;
-
+    // ✅ Validation for required fields
     if (!name || !rollNumber || !course || !semester || !gender || !phone || !email) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // ✅ CHANGE 2: Phone & email format check
+    // ✅ Phone validation
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phone)) {
       return res.status(400).json({ message: "Invalid phone number" });
     }
 
+    // ✅ Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email address" });
     }
 
-    // ✅ CHANGE 3: Require either UTR or payment screenshot
+    // ✅ Require either UTR or payment screenshot
     if (!utr && !paymentFile) {
       return res.status(400).json({ message: "UTR or Payment Screenshot required" });
     }
@@ -54,8 +62,6 @@ const createStudent = async (req, res) => {
       utr,
       photo: photoUrl,
       paymentScreenshot: paymentScreenshotUrl,
-
-      // Default values
       paymentStatus: "Pending",
       status: "Pending",
     });
@@ -63,18 +69,18 @@ const createStudent = async (req, res) => {
     res.status(201).json({ message: "Student registered successfully", student });
   } catch (error) {
     console.error("Error creating student:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Something went wrong, please try again later." });
   }
 };
 
 // Get all students
 const getStudents = async (req, res) => {
   try {
-    // ✅ CHANGE 4: Sorted by latest first
     const students = await Student.find().sort({ createdAt: -1 });
     res.json(students);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error fetching students:", error);
+    res.status(500).json({ message: "Something went wrong" });
   }
 };
 
@@ -85,7 +91,8 @@ const getStudentById = async (req, res) => {
     if (!student) return res.status(404).json({ message: "Student not found" });
     res.json(student);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error fetching student:", error);
+    res.status(500).json({ message: "Something went wrong, please try again later." });
   }
 };
 
@@ -94,7 +101,6 @@ const updateStatus = async (req, res) => {
   try {
     const updateFields = {};
 
-    // ✅ CHANGE 5: Validate enum values before updating
     if (req.body.status) {
       if (!["Pending", "Approved", "Rejected"].includes(req.body.status)) {
         return res.status(400).json({ message: "Invalid status value" });
@@ -114,7 +120,8 @@ const updateStatus = async (req, res) => {
     if (!student) return res.status(404).json({ message: "Student not found" });
     res.json({ message: "Student updated successfully", student });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error updating student:", error);
+    res.status(500).json({ message: "Something went wrong" });
   }
 };
 
@@ -124,19 +131,11 @@ const deleteStudent = async (req, res) => {
     const student = await Student.findByIdAndDelete(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
 
-    // ✅ CHANGE 6: Delete uploaded files too
-    if (student.photo) {
-      const photoPath = path.join(__dirname, "..", "uploads", path.basename(student.photo));
-      if (fs.existsSync(photoPath)) fs.unlinkSync(photoPath);
-    }
-    if (student.paymentScreenshot) {
-      const payPath = path.join(__dirname, "..", "uploads", path.basename(student.paymentScreenshot));
-      if (fs.existsSync(payPath)) fs.unlinkSync(payPath);
-    }
-
+    // ✅ No need to delete files manually (handled by Cloudinary)
     res.json({ message: "Student deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error deleting student:", error);
+    res.status(500).json({ message: "Something went wrong" });
   }
 };
 
